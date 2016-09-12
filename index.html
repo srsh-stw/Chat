@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+		<title>Real Time Chat</title>
+<style> 
+		/* adding height to chat box */
+		#chat{
+			height: 500px;
+			border: 1px #000 solid;
+			border-color: grey;
+			color : grey;
+			padding: 10px;}
+		/* initially contentWrap is not shown to the user */
+		#contentWrap{
+			display:none;
+			border-color: grey;
+			width: 400px;}
+		 /* adding border and alignment to the chat wrap */
+		#chatWrap{
+			padding : 10px;
+			float:left;
+			border:1px #000 solid;
+			border-color: grey;
+			width: 400px;
+			}
+		#message{
+			border: 1px #ddd solid;
+		}
+
+		#chatHeader{
+			border: 1px #000 solid;
+			border-color: grey;
+			width: 640px;
+			text-align: center;
+			
+		}
+		#users{
+			position: absolute;
+    		right: 630px;
+    		border: 1px #ddd solid;
+    		height: 560px;
+    		width: 200px;
+    		border-color: grey;
+    		color: green;
+    		padding: 10px;
+		}
+		#send-message{
+			padding: 10px;
+		}
+		#Postbutton{
+			position: absolute;
+			left: 280px;
+		}
+		
+</style> 			
+</head>
+<body>
+		
+		<div id="loginWrap">
+			<p>Enter your Username: </p>
+			<p id="loginError"></p>
+			<form id="setUsernameForm">
+		
+			<input size="35" id= "setUser"></input> 
+			<input type="submit"></input>
+		</form>
+		</div>
+
+		<div id="contentWrap">
+			<div id="chatHeader"> <h4> FSE Chat Room </h4> 
+			</div>
+			<div id="users"> </div>
+			<div id="chatWrap"> 
+			<div id="chat">			
+			</div> 
+			<div id = "chatBottom">
+				<form id ="send-message">
+					<input size="35" id= "message"></input> 
+					<input type="submit" id= "Postbutton" value="Post"></input>
+				</form>
+			</div>	</div>		 
+
+
+		</div>
+		
+		<script src = "http://code.jquery.com/jquery-latest.min.js">
+		</script>
+ 
+		<script src = "http://localhost:3000/socket.io/socket.io.js">
+		</script>
+
+		<script> //so that client can send msgs to the server
+		jQuery(function($) {
+			//getting socket func from socket.js
+			var socket = io.connect(); 
+			//for ease in refering
+			var $loginForm = $('#setUsernameForm');
+			var $loginError = $('#loginError');
+			var $usernameBox = $('#setUser');
+			var $users = $('#users');
+			var $messageForm = $('#send-message');
+			var $messageBox = $('#message');
+			var $chat = $('#chat');
+			var $newmsg = $('#newmsg');
+
+			//event handler for submitting user name
+			$loginForm.submit(function(e){
+				e.preventDefault();
+				socket.emit('new user', $usernameBox.val(), function(data){	
+					if(data)
+					{
+						$('#loginWrap').hide();
+						$('#contentWrap').show();
+					}
+					else
+					{
+						$loginError.html('Username taken. Try another name.');
+					}
+
+				});
+				$usernameBox.val('');
+			});
+
+			// receive user names that are connected
+			socket.on('usernames', function(data){
+				var html = '';
+				for(var i=0;i<data.length;i++)
+				{
+					html+= data[i]+ '</br>'
+				}
+				$users.html(html);
+			});
+
+			// event handler for sending a chat msg
+			$messageForm.submit(function(e){
+
+				e.preventDefault();
+				socket.emit('send message', $messageBox.val());
+				$messageBox.val('');
+
+			});
+
+			// loading old msgs when a user enters or re-enters
+			socket.on('loading msgs', function(docs){
+				for(var i=0; i<docs.length;i++)
+					{
+						displayMsg(docs[i]);
+					}
+			});
+
+			//recieve new msgs and display msgs on client side
+			socket.on('new message', function(data){
+				displayMsg(data);
+			});
+
+			//display msgs
+			function displayMsg(data){
+				var dt = new Date();
+
+			$chat.append('<b>'+ data.nameInList+ ': </b>'+' ' + data.msg + ' ' + ' ' + ' ' + dt.toUTCString() + "<br>-----------------------------<br>");
+			}
+		});
+		</script>
+</body>
+</html>
